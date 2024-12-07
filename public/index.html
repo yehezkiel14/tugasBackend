@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notes Application</title>
+    <link rel="stylesheet" href="index.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Notes Application</h1>
+        <form id="noteForm">
+            <input type="text" id="title" placeholder="Title" required>
+            <input type="datetime-local" id="datetime" required>
+            <textarea id="note" placeholder="Note" required></textarea>
+            <button type="submit">Add Note</button>
+        </form>
+        <div id="notesList"></div>
+        <div id="noteDetail" class="note-detail hidden"></div>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const form = document.getElementById('noteForm');
+            const notesList = document.getElementById('notesList');
+            const noteDetail = document.getElementById('noteDetail');
+
+            // Fetch all notes
+            const fetchNotes = async () => {
+                const response = await fetch('/notes');
+                const notes = await response.json();
+                notesList.innerHTML = '';
+                notes.forEach(note => {
+                    const noteItem = document.createElement('div');
+                    noteItem.classList.add('note-item');
+                    noteItem.innerHTML = `
+                        <h3>${note.title}</h3>
+                        <p>${note.datetime}</p>
+                        <p>${note.note}</p>
+                        <button onclick="viewNoteDetail(${note.id})">View</button>
+                        <button onclick="deleteNote(${note.id})">Delete</button>
+                    `;
+                    notesList.appendChild(noteItem);
+                });
+            };
+
+            // Add new note
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const title = document.getElementById('title').value;
+                const datetime = document.getElementById('datetime').value;
+                const note = document.getElementById('note').value;
+
+                await fetch('/notes', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ title, datetime, note })
+                });
+
+                form.reset();
+                fetchNotes();
+            });
+
+            // View note detail
+            window.viewNoteDetail = async (id) => {
+                const response = await fetch(`/notes/${id}`);
+                const note = await response.json();
+                noteDetail.innerHTML = `
+                    <h2>${note.title}</h2>
+                    <p>${note.datetime}</p>
+                    <p>${note.note}</p>
+                    <button onclick="closeNoteDetail()">Close</button>
+                `;
+                noteDetail.classList.remove('hidden');
+            };
+
+            // Close note detail
+            window.closeNoteDetail = () => {
+                noteDetail.classList.add('hidden');
+            };
+
+            // Delete note
+            window.deleteNote = async (id) => {
+                await fetch(`/notes/${id}`, {
+                    method: 'DELETE'
+                });
+                fetchNotes();
+                closeNoteDetail();
+            };
+
+            fetchNotes();
+        });
+    </script>
+</body>
+</html>
